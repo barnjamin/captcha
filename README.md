@@ -32,6 +32,8 @@ Bad stuff
 TODO
 ----
 
+- Allow specific group id to be passed and added to the transaction
+
 - Consider LastValid-FirstValid low enough that itll work for a human but a program will have trouble guessing all the results
 
 - Salt with last round hash && pass the one used to FE?
