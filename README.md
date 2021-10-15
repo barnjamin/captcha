@@ -2,7 +2,18 @@
 
 
 
-This is meant to be an exercise only
+_This is meant to be an exercise only_
+
+
+
+To run it:
+
+`go run main.go`
+
+go to https://localhost:8443 and proceed through warning screens
+
+this must be https or the js crypto libs wont load, self signed key so browsers dont like it
+
 
 
 Bad stuff
