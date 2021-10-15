@@ -10,7 +10,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/dchest/captcha"
@@ -23,7 +22,6 @@ const (
 )
 
 func main() {
-
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	http.HandleFunc("/captcha", generateCaptcha)
 	log.Fatal(http.ListenAndServeTLS(":8443", "localhost.crt", "localhost.key", nil))
@@ -46,13 +44,10 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 		solution = captcha.RandomDigits(length)
 		ctype    = r.FormValue("type")
 		lang     = r.FormValue("lang")
-		sRound   = r.FormValue("round")
 
 		buff = bytes.NewBuffer([]byte{})
 		wt   io.WriterTo
 	)
-
-	round, _ := strconv.Atoi(sRound)
 
 	switch ctype {
 	case "audio":
@@ -69,7 +64,7 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 		ciphertext []byte
 		iv         []byte
 	)
-	if ciphertext, iv, err = encrypt(solution, getTransaction(round)); err != nil {
+	if ciphertext, iv, err = encrypt(solution, getTransaction()); err != nil {
 		w.WriteHeader(500)
 	}
 
@@ -86,8 +81,8 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func getTransaction(round int) []byte {
-	//return []byte(fmt.Sprintf("txn for round: %d", round))
+func getTransaction() []byte {
+	//TODO: Create a transaction && sign it && dump bytes
 	txt := "Success!"
 	txt += strings.Repeat(" ", aes.BlockSize-(len(txt)%aes.BlockSize))
 	return []byte(txt)
