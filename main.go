@@ -7,7 +7,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -32,11 +31,13 @@ func main() {
 type captchaResponse struct {
 	Captcha     []byte `json:"captcha"`
 	Transaction []byte `json:"txn"`
+	IV          []byte `json:"iv"`
 }
 
 func generateCaptcha(w http.ResponseWriter, r *http.Request) {
+	var err error
 
-	if err := r.ParseForm(); err != nil {
+	if err = r.ParseForm(); err != nil {
 		w.WriteHeader(500)
 	}
 
@@ -63,14 +64,18 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
 	}
 
-	txn, err := encrypt(solution, getTransaction(round))
-	if err != nil {
+	var (
+		ciphertext []byte
+		iv         []byte
+	)
+	if ciphertext, iv, err = encrypt(solution, getTransaction(round)); err != nil {
 		w.WriteHeader(500)
 	}
 
 	b, err := json.Marshal(captchaResponse{
 		Captcha:     buff.Bytes(),
-		Transaction: txn,
+		Transaction: ciphertext,
+		IV:          iv,
 	})
 
 	if err != nil {
@@ -81,46 +86,56 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 }
 
 func getTransaction(round int) []byte {
-	return []byte(fmt.Sprintf("txn for round: %d", round))
+	//return []byte(fmt.Sprintf("txn for round: %d", round))
+	return []byte("exampleplaintext")
 }
 
-func encrypt(solution, plaintext []byte) (ciphertext []byte, err error) {
-
+func encrypt(solution, plaintext []byte) ([]byte, []byte, error) {
 	key := sha256.Sum256(solution)
+
 	block, err := aes.NewCipher(key[:])
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	gcm, err := cipher.NewGCMWithNonceSize(block, 16)
-	if err != nil {
-		return nil, err
+	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
+
+	plaintext = pad(aes.BlockSize, plaintext)
+
+	iv := make([]byte, aes.BlockSize)
+	if _, err = io.ReadFull(rand.Reader, iv); err != nil {
+		return nil, nil, err
 	}
 
-	nonce := make([]byte, gcm.NonceSize())
-	log.Printf("%d", gcm.NonceSize())
-	_, err = io.ReadFull(rand.Reader, nonce)
-	if err != nil {
-		return nil, err
-	}
+	mode := cipher.NewCBCEncrypter(block, iv)
+	mode.CryptBlocks(ciphertext, plaintext)
 
-	return gcm.Seal(nonce, nonce, plaintext, nil), nil
+	return ciphertext, iv, nil
 }
 
-func decrypt(solution, ciphertext []byte) (plaintext []byte, err error) {
-	key := sha256.Sum256(solution)
-	block, err := aes.NewCipher(key[:])
-	if err != nil {
-		return nil, err
-	}
-
-	gcm, err := cipher.NewGCMWithNonceSize(block, 16)
-	if err != nil {
-		return nil, err
-	}
-
-	nonce := ciphertext[:gcm.NonceSize()]
-	ciphertext = ciphertext[gcm.NonceSize():]
-
-	return gcm.Open(nil, nonce, ciphertext, nil)
+func pad(blockSize int, txt []byte) []byte {
+	padding := (blockSize - len(txt)%blockSize)
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(txt, padtext...)
 }
+
+//func decrypt(solution, ciphertext []byte) ([]byte, error) {
+//	key := sha256.Sum256(solution)
+//	block, err := aes.NewCipher(key[:])
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	iv := ciphertext[:aes.BlockSize]
+//	ciphertext = ciphertext[aes.BlockSize:]
+//
+//	log.Printf("key: %v", key)
+//	log.Printf("iv: %v", iv)
+//	log.Printf("cipher: %v\n", ciphertext)
+//
+//	mode := cipher.NewCBCDecrypter(block, iv)
+//	mode.CryptBlocks(ciphertext, ciphertext)
+//
+//	return ciphertext, nil
+//}
+//

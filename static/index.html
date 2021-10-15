@@ -5,84 +5,10 @@
 	<title>A static page</title>
 </head>
 <body>
-
 	<img id='captcha' />
-
-    <input type='text' 
-        placeholder='Solution' 
-        id='solution' name='solution'/>
-
+    <hr/>
+    <input type='text' placeholder='Solution' id='solution' name='solution'/>
     <button id='check' >Check</button>
-
 </body>
-    <script type='text/javascript'>
-        (async function(){
-
-            let txn;
-
-
-            const nonceSize = 16
-            const prefix = "data:image/png;base64,"
-
-            const img       = document.getElementById("captcha")
-            const solution  = document.getElementById("solution")
-            const button    = document.getElementById("check")
-
-            button.onclick = async function () {
-                const hash = await sha256(solution.value)
-
-                const key = await crypto.subtle.importKey(
-                    "raw", hash, "AES-CBC", false, ["decrypt"],
-                )
-
-
-                try {
-                    const res = await decrypt(key, txn);
-                    console.log(res)
-                } catch (error) {
-                    console.error(error)
-                }
-            }
-
-
-            
-            async function decrypt(key, txn) {
-                const txnBuffer = new TextEncoder()
-                    .encode(atob(txn))
-
-                console.log(txnBuffer.length)
-                const iv = txnBuffer.slice(0, nonceSize)
-                const cipher = txnBuffer.slice(nonceSize)
-
-                console.log(iv.length, cipher.length)
-                return await window.crypto.subtle.decrypt(
-                  { name: "AES-CBC", iv: iv },
-                  key,
-                  cipher
-                );
-            }
-
-            async function sha256(msg) {
-                const msgBuffer = new TextEncoder()
-                    .encode(solution.value);
-
-                const hashBuffer = await crypto
-                    .subtle.digest('SHA-256', msgBuffer);
-
-                return new Uint8Array(hashBuffer);
-            }
-
-           
-
-            fetch('/captcha?type=img&lang=en&round=500')
-                .then(response => response.json())
-                .then(data => {
-                    img.src = prefix + data['captcha']
-                    txn = data['txn'] 
-                });
-
-        })();
-
-        
-    </script>
+<script type='text/javascript' src='main.js' ></script>
 </html>
