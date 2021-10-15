@@ -19,7 +19,7 @@ this must be https or the js crypto libs wont load, self signed key so browsers 
 Bad stuff
 ---------
 
-- OCI could break this
+- OCR could break this
 
 - Multithreading and making a ton of guesses could break this
 
