@@ -34,8 +34,8 @@ var (
 
 func main() {
 	var err error
-	client, err = algod.MakeClient("https://testnet.algoexplorerapi.io", "")
 
+	client, err = algod.MakeClient("https://testnet.algoexplorerapi.io", "")
 	if err != nil {
 		log.Fatalf("Failed to make client: %+v", err)
 	}
@@ -50,6 +50,7 @@ func main() {
 type captchaResponse struct {
 	Captcha     []byte `json:"captcha"`
 	Transaction []byte `json:"txn"`
+	TxId        []byte `json:"txid"`
 	IV          []byte `json:"iv"`
 	Padding     int    `json:"pad"`
 }
@@ -90,14 +91,14 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 		iv         []byte
 	)
 
-	txn, padding, err := getTransaction()
+	txn, txid, padding, err := getTransaction()
 	if err != nil {
 		log.Printf("%+v", err)
 		w.WriteHeader(500)
 		return
 	}
 
-	if ciphertext, iv, err = encrypt(solution, txn); err != nil {
+	if ciphertext, iv, err = encrypt(append(solution, txid...), txn); err != nil {
 		log.Printf("%+v", err)
 		w.WriteHeader(500)
 		return
@@ -108,6 +109,7 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 		Transaction: ciphertext,
 		IV:          iv,
 		Padding:     padding,
+		TxId:        txid,
 	})
 
 	if err != nil {
@@ -119,29 +121,27 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func getTransaction() ([]byte, int, error) {
-	//TODO: Create a transaction && sign it && dump bytes
+func getTransaction() ([]byte, []byte, int, error) {
 	sp, err := client.SuggestedParams().Do(context.Background())
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, 0, err
 	}
 	sp.LastRoundValid = sp.FirstRoundValid + rounds
 
 	auth := account.Address.String()
 	txn, err := future.MakePaymentTxn(auth, auth, 0, nil, "", sp)
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, 0, err
 	}
 	txn.Fee = 0
 
-	_, sbytes, err := crypto.SignTransaction(account.PrivateKey, txn)
+	txid, sbytes, err := crypto.SignTransaction(account.PrivateKey, txn)
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, 0, err
 	}
 
 	padding := aes.BlockSize - (len(sbytes) % aes.BlockSize)
-	return append(sbytes, bytes.Repeat([]byte(" "), padding)...), padding, nil
-
+	return append(sbytes, bytes.Repeat([]byte(" "), padding)...), []byte(txid), padding, nil
 }
 
 func encrypt(solution, plaintext []byte) ([]byte, []byte, error) {
