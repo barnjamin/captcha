@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/dchest/captcha"
 )
@@ -87,7 +88,9 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 
 func getTransaction(round int) []byte {
 	//return []byte(fmt.Sprintf("txn for round: %d", round))
-	return []byte("exampleplaintext")
+	txt := "Success!"
+	txt += strings.Repeat(" ", aes.BlockSize-(len(txt)%aes.BlockSize))
+	return []byte(txt)
 }
 
 func encrypt(solution, plaintext []byte) ([]byte, []byte, error) {

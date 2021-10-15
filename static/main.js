@@ -3,9 +3,6 @@
     let txn;
     let iv;
 
-
-
-    const nonceSize = 16
     const prefix = "data:image/png;base64,"
 
     const img       = document.getElementById("captcha")
@@ -15,13 +12,18 @@
     button.onclick = async function () {
         try {
             const key = await solutionToKey(solution.value)
-            const decrypted = await window.crypto.subtle.decrypt(
-                { name: "AES-CBC",  iv: iv }, key, txn 
-            );
-            console.log(decrypted)
+            alert("Decrypted message: "+ await decrypt(key))
         } catch (error) {
             console.error(error)
         }
+    }
+
+    async function decrypt(key) {
+        const decrypted = await window.crypto.subtle.decrypt(
+            { name: "AES-CBC",  iv: iv }, key, txn 
+        );
+
+        return new TextDecoder("utf-8").decode(decrypted)
     }
 
     async function solutionToKey(msg) {
@@ -29,11 +31,11 @@
         const hbuff = await crypto.subtle.digest('SHA-256', bytes);
         const hash = new Uint8Array(hbuff)
         return await crypto.subtle.importKey(
-            "raw", hash, "AES-CBC", false, ["decrypt", "encrypt"],
+            "raw", hash, "AES-CBC", false, ["decrypt"],
         )
     }
 
-    fetch('/captcha?type=img&lang=en&round=500')
+    fetch('/captcha?type=img&lang=en')
         .then(response => response.json())
         .then(data => {
             img.src = prefix + data['captcha']
