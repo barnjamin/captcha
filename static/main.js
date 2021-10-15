@@ -2,28 +2,35 @@
 
     let txn;
     let iv;
+    let padding;
 
     const prefix = "data:image/png;base64,"
 
     const img       = document.getElementById("captcha")
     const solution  = document.getElementById("solution")
     const button    = document.getElementById("check")
+    const encview   = document.getElementById("encrypted")
+    const decview   = document.getElementById("decrypted")
 
     button.onclick = async function () {
         try {
             const key = await solutionToKey(solution.value)
-            alert("Decrypted message: "+ await decrypt(key))
+            const decrypted = await decryptTxn(key)
+            //alert("Decrypted message: "+ decrypted)
+            decview.value = JSON.stringify(decrypted)
         } catch (error) {
             console.error(error)
         }
     }
 
-    async function decrypt(key) {
-        const decrypted = await window.crypto.subtle.decrypt(
+    async function decryptTxn(key) {
+        const decrypted = new Uint8Array(await window.crypto.subtle.decrypt(
             { name: "AES-CBC",  iv: iv }, key, txn 
-        );
+        ));
 
-        return new TextDecoder("utf-8").decode(decrypted)
+        const unpadded = decrypted.slice(0, decrypted.length-padding)
+        const stxn = algosdk.decodeSignedTransaction(unpadded)
+        return stxn 
     }
 
     async function solutionToKey(msg) {
@@ -41,6 +48,9 @@
             img.src = prefix + data['captcha']
             txn  = Uint8Array.from(atob(data['txn']), c => { return c.charCodeAt(0)})
             iv  = Uint8Array.from(atob(data['iv']), c => { return c.charCodeAt(0)})
+            padding = data['pad']
+
+            encview.value = txn
         });
 
 })();

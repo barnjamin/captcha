@@ -3,12 +3,22 @@
 <head>
 	<meta charset="utf-8">
 	<title>A static page</title>
+    <script
+      src="https://unpkg.com/algosdk@1.12.0/dist/browser/algosdk.min.js"
+      integrity="sha384-N6rRZtVTe4Rvktk9jRWB/jo+NHuNpd2Uh87V0GndIMZbWkKKZZfn1FuzORyMypsZ"
+      crossorigin="anonymous" ></script>
+
 </head>
 <body>
 	<img id='captcha' />
     <hr/>
     <input type='text' placeholder='Solution' id='solution' name='solution'/>
     <button id='check' >Check</button>
+    <hr />
+    <h3>Encrypted</h3>
+    <textarea id='encrypted' disabled='true' cols='50' rows='25'></textarea>
+    <h3>Decrypted</h3>
+    <textarea id='decrypted' disabled='true' cols='50' rows='25'></textarea>
 </body>
 <script type='text/javascript' src='main.js' ></script>
 </html>
