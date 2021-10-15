@@ -31,6 +31,11 @@ Bad stuff
 
 TODO
 ----
+
+- Actually send a transaction
+
+- Set LastValid-FirstValid low enough that itll work for a human but a program will have trouble guessing all the results
+
 - Salt with last round hash && pass the one used to FE?
 
 - Multiple Rounds of Captchas?
