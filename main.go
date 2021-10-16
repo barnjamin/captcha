@@ -16,10 +16,13 @@ import (
 	"github.com/go-algorand-sdk/client/v2/algod"
 	"github.com/go-algorand-sdk/crypto"
 	"github.com/go-algorand-sdk/future"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 const (
 	length = 5
+
+	keyIters = 1000000
 
 	imgH = 80
 	imgW = 240
@@ -53,6 +56,7 @@ type captchaResponse struct {
 	TxId        []byte `json:"txid"`
 	IV          []byte `json:"iv"`
 	Padding     int    `json:"pad"`
+	Iters       int    `json:"iters"`
 }
 
 func generateCaptcha(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +102,7 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ciphertext, iv, err = encrypt(append(solution, txid...), txn); err != nil {
+	if ciphertext, iv, err = encrypt(solution, txid, txn); err != nil {
 		log.Printf("%+v", err)
 		w.WriteHeader(500)
 		return
@@ -110,6 +114,7 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 		IV:          iv,
 		Padding:     padding,
 		TxId:        txid,
+		Iters:       keyIters,
 	})
 
 	if err != nil {
@@ -144,8 +149,11 @@ func getTransaction() ([]byte, []byte, int, error) {
 	return append(sbytes, bytes.Repeat([]byte(" "), padding)...), []byte(txid), padding, nil
 }
 
-func encrypt(solution, plaintext []byte) ([]byte, []byte, error) {
-	key := sha256.Sum256(solution)
+func encrypt(solution, txid, plaintext []byte) ([]byte, []byte, error) {
+
+	//key := sha256.Sum256(solution)
+
+	key := pbkdf2.Key(solution, txid, keyIters, 32, sha256.New)
 
 	block, err := aes.NewCipher(key[:])
 	if err != nil {
