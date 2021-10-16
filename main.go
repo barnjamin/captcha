@@ -75,6 +75,8 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 
 		buff = bytes.NewBuffer([]byte{})
 		wt   io.WriterTo
+
+		ciphertext, iv []byte
 	)
 
 	switch ctype {
@@ -89,11 +91,6 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
 		return
 	}
-
-	var (
-		ciphertext []byte
-		iv         []byte
-	)
 
 	txn, txid, padding, err := getTransaction()
 	if err != nil {
@@ -150,9 +147,6 @@ func getTransaction() ([]byte, []byte, int, error) {
 }
 
 func encrypt(solution, txid, plaintext []byte) ([]byte, []byte, error) {
-
-	//key := sha256.Sum256(solution)
-
 	key := pbkdf2.Key(solution, txid, keyIters, 32, sha256.New)
 
 	block, err := aes.NewCipher(key[:])
