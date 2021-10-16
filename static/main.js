@@ -4,6 +4,7 @@
     let txnid;
     let iv;
     let padding;
+    let iters;
 
     const prefix = "data:image/png;base64,"
 
@@ -33,13 +34,28 @@
         return stxn 
     }
 
-    async function solutionToKey(msg) {
-        const bytes = new Uint8Array(msg.split('').map(c=>{ return parseInt(c) }))
-        const tohash = new Uint8Array([...bytes, ...txnid])
-        const hbuff = await crypto.subtle.digest('SHA-256', tohash);
-        const hash = new Uint8Array(hbuff)
+    async function solutionToKey(solution) {
+        const passphrase = new Uint8Array(solution.split('').map(c=>{ return parseInt(c) }))
+
+        console.time("import")
+        const rawKey = await window.crypto.subtle.importKey(
+          "raw", passphrase, "PBKDF2", false, ["deriveBits", "deriveKey"]
+        ).then((cryptoKey) => {
+          return cryptoKey;
+        });
+        console.timeEnd("import")
+
+        console.time("deriveBits")
+        const bits = await window.crypto.subtle.deriveBits(
+          { name: "PBKDF2", hash: "SHA-256", salt: txnid, iterations: iters },
+          rawKey, 256
+        ).then((derivedBits) => {
+          return derivedBits;
+        });
+        console.timeEnd("deriveBits")
+
         return await crypto.subtle.importKey(
-            "raw", hash, "AES-CBC", false, ["decrypt"],
+            "raw", bits, "AES-CBC", false, ["decrypt"],
         )
     }
 
@@ -50,6 +66,7 @@
             txn     = Uint8Array.from(atob(data['txn']), c => { return c.charCodeAt(0)})
             txnid   = Uint8Array.from(atob(data['txid']),c => { return c.charCodeAt(0)})
             iv      = Uint8Array.from(atob(data['iv']),  c => { return c.charCodeAt(0)})
+            iters   = data['iters']
             padding = data['pad']
 
             encview.value = txn
