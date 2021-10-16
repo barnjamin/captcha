@@ -17,7 +17,16 @@ Details
 Currently a new account is generated every time the service is restarted. This would need to be static in an actual solution and known ahead of time for any contract that might want to check that the transaction group is cosigned.
 
 
-Key generation is done using [PBKDF2](https://en.wikipedia.org/wiki/PBKDF2) to provide a better key from such a low entropy source as well as some time cost to an attacker. The captcha solution is the password, we're using the generated transaction id as a salt, and its currently configured to run for 1mm iterations. In my browser this 1mm iteration key generation takes about half a second. The number of iterations can be increased to provide a greater challenge to attackers.
+Key generation is done using [PBKDF2](https://en.wikipedia.org/wiki/PBKDF2) to provide a better key from such a low entropy source as well as some time cost to an attacker. The captcha solution is the password, we're using the generated transaction id as a salt, and its currently configured to run for 10e5 iterations. In my browser this 10e5 iteration key generation takes about 500ms. The number of iterations can be increased to provide a greater challenge to attackers.
+
+
+|iters |time  |
+|------|------|
+|10e3  |13ms  |
+|10e4  |75ms  |
+|10e5  |604ms |
+|10e6  |5941ms|
+
 
 Encryption/Decryption is done using AES-CBC though there is no specific reason to have chosen this mode.
 

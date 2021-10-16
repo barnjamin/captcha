@@ -22,7 +22,7 @@ import (
 const (
 	length = 5
 
-	keyIters = 1000000
+	keyIters = 10e5
 
 	imgH = 80
 	imgW = 240
