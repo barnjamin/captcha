@@ -163,7 +163,7 @@ func encrypt(solution, txid, plaintext []byte) ([]byte, []byte, error) {
 		return nil, nil, err
 	}
 
-	mode := cipher.NewCBCEncrypter(block, iv)
+	mode := cipher.NewGCMEncrypter(block, iv)
 	mode.CryptBlocks(ciphertext, plaintext)
 
 	return ciphertext, iv, nil

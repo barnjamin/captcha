@@ -26,7 +26,7 @@
 
     async function decryptTxn(key) {
         const decrypted = new Uint8Array(await window.crypto.subtle.decrypt(
-            { name: "AES-CBC",  iv: iv }, key, txn 
+            { name: "AES-GCM",  iv: iv }, key, txn 
         ));
 
         const unpadded = decrypted.slice(0, decrypted.length-padding)
