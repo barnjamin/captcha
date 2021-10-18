@@ -1,7 +1,7 @@
 (async function(){
 
     let txn;
-    let txnid;
+    let salt;
     let iv;
     let padding;
     let iters;
@@ -47,7 +47,7 @@
 
         console.time("deriveBits")
         const bits = await window.crypto.subtle.deriveBits(
-          { name: "PBKDF2", hash: "SHA-256", salt: txnid, iterations: iters },
+          { name: "PBKDF2", hash: "SHA-256", salt: salt, iterations: iters },
           rawKey, 256
         ).then((derivedBits) => {
           return derivedBits;
@@ -64,7 +64,7 @@
         .then(data => {
             img.src = prefix + data['captcha']
             txn     = Uint8Array.from(atob(data['txn']), c => { return c.charCodeAt(0)})
-            txnid   = Uint8Array.from(atob(data['txid']),c => { return c.charCodeAt(0)})
+            salt    = Uint8Array.from(atob(data['salt']),c => { return c.charCodeAt(0)})
             iv      = Uint8Array.from(atob(data['iv']),  c => { return c.charCodeAt(0)})
             iters   = data['iters']
             padding = data['pad']
