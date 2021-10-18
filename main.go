@@ -53,7 +53,7 @@ func main() {
 type captchaResponse struct {
 	Captcha     []byte `json:"captcha"`
 	Transaction []byte `json:"txn"`
-	TxId        []byte `json:"txid"`
+	Salt        []byte `json:"salt"`
 	IV          []byte `json:"iv"`
 	Padding     int    `json:"pad"`
 	Iters       int    `json:"iters"`
@@ -73,6 +73,7 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 		ctype    = r.FormValue("type")
 		lang     = r.FormValue("lang")
 
+		salt = make([]byte, 32)
 		buff = bytes.NewBuffer([]byte{})
 		wt   io.WriterTo
 
@@ -92,14 +93,20 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txn, txid, padding, err := getTransaction()
+	txn, padding, err := getTransaction()
 	if err != nil {
 		log.Printf("%+v", err)
 		w.WriteHeader(500)
 		return
 	}
 
-	if ciphertext, iv, err = encrypt(solution, txid, txn); err != nil {
+	if ciphertext, iv, err = encrypt(solution, salt, txn); err != nil {
+		log.Printf("%+v", err)
+		w.WriteHeader(500)
+		return
+	}
+
+	if _, err = rand.Read(salt); err != nil {
 		log.Printf("%+v", err)
 		w.WriteHeader(500)
 		return
@@ -110,7 +117,7 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 		Transaction: ciphertext,
 		IV:          iv,
 		Padding:     padding,
-		TxId:        txid,
+		Salt:        salt,
 		Iters:       keyIters,
 	})
 
@@ -123,31 +130,31 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func getTransaction() ([]byte, []byte, int, error) {
+func getTransaction() ([]byte, int, error) {
 	sp, err := client.SuggestedParams().Do(context.Background())
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, 0, err
 	}
 	sp.LastRoundValid = sp.FirstRoundValid + rounds
 
 	auth := account.Address.String()
 	txn, err := future.MakePaymentTxn(auth, auth, 0, nil, "", sp)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, 0, err
 	}
 	txn.Fee = 0
 
-	txid, sbytes, err := crypto.SignTransaction(account.PrivateKey, txn)
+	_, sbytes, err := crypto.SignTransaction(account.PrivateKey, txn)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, 0, err
 	}
 
 	padding := aes.BlockSize - (len(sbytes) % aes.BlockSize)
-	return append(sbytes, bytes.Repeat([]byte(" "), padding)...), []byte(txid), padding, nil
+	return append(sbytes, bytes.Repeat([]byte(" "), padding)...), padding, nil
 }
 
-func encrypt(solution, txid, plaintext []byte) ([]byte, []byte, error) {
-	key := pbkdf2.Key(solution, txid, keyIters, 32, sha256.New)
+func encrypt(solution, salt, plaintext []byte) ([]byte, []byte, error) {
+	key := pbkdf2.Key(solution, salt, keyIters, 32, sha256.New)
 
 	block, err := aes.NewCipher(key[:])
 	if err != nil {
