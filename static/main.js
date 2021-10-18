@@ -69,8 +69,6 @@
             iters   = data['iters']
             padding = data['pad']
 
-            console.log(salt)
-
             encview.value = txn
         });
 

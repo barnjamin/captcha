@@ -100,13 +100,13 @@ func generateCaptcha(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ciphertext, iv, err = encrypt(solution, salt, txn); err != nil {
+	if _, err = rand.Read(salt); err != nil {
 		log.Printf("%+v", err)
 		w.WriteHeader(500)
 		return
 	}
 
-	if _, err = rand.Read(salt); err != nil {
+	if ciphertext, iv, err = encrypt(solution, salt, txn); err != nil {
 		log.Printf("%+v", err)
 		w.WriteHeader(500)
 		return
